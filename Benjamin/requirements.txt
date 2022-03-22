@@ -1,0 +1,9 @@
+ccxt
+pandas
+python-dotenv
+plotly
+matplotlib
+nbformat
+stable-baselines3
+gym-anytrading
+gym
