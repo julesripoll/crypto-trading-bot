@@ -41,6 +41,6 @@ if __name__ == '__main__':
         df = pd.read_sql_query(query, conn)
         print(df.head())
         df.to_csv('first_test_BTC.csv')
-
+        print('toto')
     end = time.time()
     print("Temps total : {} sec".format(round(end - start)))
