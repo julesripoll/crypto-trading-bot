@@ -1,0 +1,33 @@
+FROM python:3.9
+
+# install FreeTDS and dependencies
+RUN apt-get update \
+ && apt-get install unixodbc -y \
+ && apt-get install unixodbc-dev -y \
+ && apt-get install freetds-dev -y \
+ && apt-get install freetds-bin -y \
+ && apt-get install tdsodbc -y \
+ && apt-get install --reinstall build-essential -y
+# populate "ocbcinst.ini" as this is where ODBC driver config sits
+
+RUN echo "[FreeTDS]\n\
+Description = FreeTDS Driver\n\
+Driver = /usr/lib/x86_64-linux-gnu/odbc/libtdsodbc.so\n\
+Setup = /usr/lib/x86_64-linux-gnu/odbc/libtdsS.so" >> /etc/odbcinst.ini \
+
+WORKDIR /app
+#COPY requirements.txt requirements.txt
+RUN pip3 install --upgrade pip
+RUN pip3 install pandas
+RUN pip3 install pyodbc==4.0.28
+
+#RUN pip3 install -r requirements.txt
+
+
+COPY extract_data.py extract_data.py
+#Pip command without proxy setting
+#RUN pip install -r requirements.txt
+
+#Use this one if you have proxy setting
+# RUN pip --proxy http://[proxy:port] install -r requirements.txt
+CMD ["python3","extract_data.py"]

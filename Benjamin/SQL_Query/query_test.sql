@@ -3,4 +3,6 @@
 -- SELECT TOP 10 * FROM future_ind.IchimokuSignal;
 
 -- SELECT TOP 10 * FROM future_ind.Prices;
-SELECT DISTINCT Interval FROM future.MarketPrices;
+-- SELECT DISTINCT Interval FROM future.MarketPrices;
+
+SELECT * FROM future.MarketPrices;

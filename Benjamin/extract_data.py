@@ -1,3 +1,6 @@
+import os
+import os.path
+from os.path import isdir
 import pyodbc
 import pandas as pd
 import time
@@ -7,13 +10,15 @@ server = 'crypto-bot.database.windows.net'
 database = 'binance'
 username = 'cryptoAdmin'
 password = 'Petit@Soleil'
-driver = '{SQL Server}'
+driver = '{ODBC Driver 17 for SQL Server}'
+#driver = '{FreeTDS}'
 
 connector_str = 'DRIVER=' + driver + ';SERVER=tcp:' + server + ';PORT=1433;DATABASE=' + database + ';UID=' \
                 + username + ';PWD=' + password
 
+print(connector_str)
 
-def extract_data(args):
+def query_extract_data(args):
     if args.get('interval'):
         if args.get('limit'):
             query = """
@@ -84,7 +89,7 @@ def getArguments():
 
 
 def csv_file_name(args):
-    output = ""
+    output = "csv_files/"
     if args.get('cryptoCode'):
         output += args.get('cryptoCode')
     else:
@@ -102,14 +107,20 @@ def csv_file_name(args):
 
 if __name__ == '__main__':
     start = time.time()
-
+    print("Coucou")
     arguments = getArguments()
-    query = extract_data(arguments)
+    query = query_extract_data(arguments)
 
     with pyodbc.connect(connector_str) as conn:
         df = pd.read_sql_query(query, conn)
         df = df.drop('MarketPriceId', axis=1, errors='ignore').sort_values(by=['Interval', 'TimeOpenLong'])
         df_output = generate_dataset(df, 25)
+
+        if os.path.exists("csv_files/") and isdir("csv_files/"):
+            pass
+        else:
+            os.mkdir("csv_files")
+
         df_output.to_csv(csv_file_name(arguments), index=False)
 
     end = time.time()
