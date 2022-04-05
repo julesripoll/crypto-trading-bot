@@ -1,3 +1,5 @@
+import os.path
+from os.path import isdir
 import pyodbc
 import pandas as pd
 import time
@@ -7,13 +9,14 @@ server = 'crypto-bot.database.windows.net'
 database = 'binance'
 username = 'cryptoAdmin'
 password = 'Petit@Soleil'
-driver = '{SQL Server}'
+driver = '{ODBC Driver 17 for SQL Server}'
 
 connector_str = 'DRIVER=' + driver + ';SERVER=tcp:' + server + ';PORT=1433;DATABASE=' + database + ';UID=' \
                 + username + ';PWD=' + password
 
 
-def extract_data(args):
+def query_extract_data(args):
+
     if args.get('interval'):
         if args.get('limit'):
             query = """
@@ -21,7 +24,6 @@ def extract_data(args):
                 TOP {} * 
                 FROM future.MarketPrices mp
                 LEFT JOIN future_ind.Ichimoku ich ON mp.MarketPriceId = ich.MarketPriceId
-                LEFT JOIN future_ind.IchimokuSignal ich_sign ON mp.MarketPriceId = ich_sign.MarketPriceId
                 WHERE mp.Symbol = '{}' AND mp.Interval = '{}'
             """.format(args.get('limit'), args.get('cryptoCode'), args.get('interval'))
         else:
@@ -30,7 +32,6 @@ def extract_data(args):
                     *
                 FROM future.MarketPrices mp 
                 LEFT JOIN future_ind.Ichimoku ich ON mp.MarketPriceId = ich.MarketPriceId
-                LEFT JOIN future_ind.IchimokuSignal ich_sign ON mp.MarketPriceId = ich_sign.MarketPriceId
                 WHERE mp.Symbol = '{}' AND mp.Interval = '{}'
             """.format(args.get('cryptoCode'), args.get('interval'))
     else:
@@ -40,7 +41,6 @@ def extract_data(args):
                 TOP {} * 
                 FROM future.MarketPrices mp
                 LEFT JOIN future_ind.Ichimoku ich ON mp.MarketPriceId = ich.MarketPriceId
-                LEFT JOIN future_ind.IchimokuSignal ich_sign ON mp.MarketPriceId = ich_sign.MarketPriceId
                 WHERE mp.Symbol = '{}'
             """.format(args.get('limit'), args.get('cryptoCode'))
         else:
@@ -49,18 +49,17 @@ def extract_data(args):
                     *
                 FROM future.MarketPrices mp 
                 LEFT JOIN future_ind.Ichimoku ich ON mp.MarketPriceId = ich.MarketPriceId
-                LEFT JOIN future_ind.IchimokuSignal ich_sign ON mp.MarketPriceId = ich_sign.MarketPriceId
                 WHERE mp.Symbol = '{}'
             """.format(args.get('cryptoCode'))
     return query
 
 
-def generate_dataset(df, nb_timesteps):
-    df_output = df.copy()
+def shift_past(df_in, nb_timesteps):
+    df_out = df_in.copy()
     # On ajoute une colonne à chaque itération
     for k in range(1, nb_timesteps + 1):
-        df_output[f"0P_T-{k}"] = df_output["OpenPrice"].shift(k)
-    return df_output
+        df_out[f"OP_T-{k}"] = df_out["OpenPrice"].shift(k)
+    return df_out
 
 
 def getArguments():
@@ -71,6 +70,7 @@ def getArguments():
     parser.add_argument("-c", "--cryptoCode", help="Crypto currency Code")
     parser.add_argument("-i", "--interval", help="Candles Interval")
     parser.add_argument("-l", "--limit", help="Number of lines exported")
+    parser.add_argument("-p", "--past", help="Number of candles we want to shift from the past in the DF.")
 
     # Read arguments from command line
     args = parser.parse_args()
@@ -80,11 +80,21 @@ def getArguments():
             d['limit'] = int(d['limit'])
         except ValueError:
             d['limit'] = None
+
+    if d.get('past'):
+        try:
+            d['past'] = int(d['past'])
+        except ValueError:
+            d['past'] = None
+
+    if not d.get('cryptoCode'):
+        d['cryptoCode'] = 'BTCBUSD'
+
     return d
 
 
 def csv_file_name(args):
-    output = ""
+    output = "csv_files/"
     if args.get('cryptoCode'):
         output += args.get('cryptoCode')
     else:
@@ -96,20 +106,44 @@ def csv_file_name(args):
     if args.get('limit'):
         output += '_' + str(args.get('limit')) + 'Lines'
 
+    if args.get('past'):
+        output += '_' + str(args.get('past')) + 'PastPrices'
+
     output += '.csv'
+    return output
+
+
+def welcome_message(args):
+    output = f"Export de {args.get('cryptoCode', 'toutes les cryptos')} " \
+             f"pour les bougies de {args.get('interval', 'tous les intervalles')} "
+    if args.get('limit'):
+        output += f"avec une limite de {args.get('limit')} lignes."
+    else:
+        output += "sans limite de lignes."
     return output
 
 
 if __name__ == '__main__':
     start = time.time()
-
     arguments = getArguments()
-    query = extract_data(arguments)
+    print(welcome_message(arguments))
+
+    queryExport = query_extract_data(arguments)
 
     with pyodbc.connect(connector_str) as conn:
-        df = pd.read_sql_query(query, conn)
+        df = pd.read_sql_query(queryExport, conn)
         df = df.drop('MarketPriceId', axis=1, errors='ignore').sort_values(by=['Interval', 'TimeOpenLong'])
-        df_output = generate_dataset(df, 25)
+
+        if arguments.get('past'):
+            df_output = shift_past(df, arguments.get('past'))
+        else:
+            df_output = shift_past(df, 10)
+
+        if os.path.exists("csv_files") and isdir("csv_files"):
+            pass
+        else:
+            os.mkdir("csv_files")
+
         df_output.to_csv(csv_file_name(arguments), index=False)
 
     end = time.time()
