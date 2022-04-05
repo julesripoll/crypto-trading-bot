@@ -8,4 +8,4 @@ RUN pip3 install pyodbc==4.0.28
 
 WORKDIR /app
 COPY extract_data.py extract_data.py
-CMD ["python3", "extract_data.py", "-c", "BTCBUSD", "-i", "1d"]
+ENTRYPOINT ["python3", "extract_data.py"]
