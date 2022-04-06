@@ -4,6 +4,8 @@ import pyodbc
 import pandas as pd
 import time
 import argparse
+import warnings
+
 
 server = 'crypto-bot.database.windows.net'
 database = 'binance'
@@ -16,7 +18,6 @@ connector_str = 'DRIVER=' + driver + ';SERVER=tcp:' + server + ';PORT=1433;DATAB
 
 
 def query_extract_data(args):
-
     if args.get('interval'):
         if args.get('limit'):
             query = """
@@ -95,6 +96,7 @@ def getArguments():
 
 def csv_file_name(args):
     output = "csv_files/"
+    #output = ""
     if args.get('cryptoCode'):
         output += args.get('cryptoCode')
     else:
@@ -131,20 +133,22 @@ if __name__ == '__main__':
     queryExport = query_extract_data(arguments)
 
     with pyodbc.connect(connector_str) as conn:
-        df = pd.read_sql_query(queryExport, conn)
-        df = df.drop('MarketPriceId', axis=1, errors='ignore').sort_values(by=['Interval', 'TimeOpenLong'])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore', UserWarning)
+            df = pd.read_sql_query(queryExport, conn)
+            df = df.drop('MarketPriceId', axis=1, errors='ignore').sort_values(by=['Interval', 'TimeOpenLong'])
 
-        if arguments.get('past'):
-            df_output = shift_past(df, arguments.get('past'))
-        else:
-            df_output = shift_past(df, 10)
+            if arguments.get('past'):
+                df_output = shift_past(df, arguments.get('past'))
+            else:
+                df_output = shift_past(df, 10)
 
-        if os.path.exists("csv_files") and isdir("csv_files"):
-            pass
-        else:
-            os.mkdir("csv_files")
+            if os.path.exists("csv_files") and isdir("csv_files"):
+                pass
+            else:
+                os.mkdir("csv_files")
 
-        df_output.to_csv(csv_file_name(arguments), index=False)
+            df_output.to_csv(csv_file_name(arguments), index=False)
 
     end = time.time()
     print("Temps total : {} sec".format(round(end - start)))
