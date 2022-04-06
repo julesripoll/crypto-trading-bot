@@ -1,0 +1,9 @@
+pandas
+python-dotenv
+plotly
+matplotlib
+nbformat
+stable-baselines3
+gym-anytrading
+gym
+pyodbc==4.0.28
