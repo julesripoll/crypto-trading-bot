@@ -1,3 +1,4 @@
+import tf_agents
 from tf_agents.environments import py_environment
 from tf_agents.specs import array_spec
 from tf_agents.trajectories import time_step as ts
@@ -16,7 +17,7 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         self.tc=tc
         self.window_size=window_size
         self.state= df[:][self.train_index-window_size:self.train_index]
-        self.positioned=False
+        self.position_opened=False
         self.buying_price=0
         self._episode_ended=False
 
@@ -36,7 +37,7 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         return step
 
     def reward(self, ind, buying_price):
-        return self.train_df['Close'][ind]-buying_price-self.tc
+        return self.train_df['close'][ind]-buying_price-self.tc
     
     def _step(self, action):
         """
@@ -51,18 +52,18 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         if self._episode_ended :
           return self.reset()
         rwd=0
-        current_price=self.train_df['Close'][self.train_index]
-        if action==0 : #buy
+        current_price=self.train_df['close'][self.train_index]
+        if action==0 and self.position_opened==False: #si on veut acheter et qu'on a pas déjà acheté
             rwd=0
             self.buying_price=current_price
             self.current_balance-=current_price
-            self.positioned=True
-        elif action==1: #do nothing
-            rwd=0
-        elif action==2: #sell
-            self.positioned=False
+            self.position_opened=True
+        elif action==2 and self.position_opened: #si on veut vendre et qu'on a qqch à vendre
+            self.position_opened=False
             rwd=self.reward(self.train_index,self.buying_price)
             self.current_balance+=current_price
+        else: #action==1: do nothing
+            rwd=0
 
         self.train_index+=1
         self.state=self.train_df[:][self.train_index-self.window_size:self.train_index]
@@ -85,6 +86,3 @@ class TradingEnvTrain(py_environment.PyEnvironment):
 
     def _render(self):
         pass
-
-
-
