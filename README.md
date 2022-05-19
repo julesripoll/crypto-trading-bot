@@ -2,6 +2,8 @@
 
 Trading bot using alpaca api, aws and python.
 
+To-Do board : https://trello.com/b/gbe9xqEX/sprint-0
+
 ## Exporter les données depuis la base de données
 
 Pour exporter les données depuis SQL Server en utilisant Docker, il faut :
