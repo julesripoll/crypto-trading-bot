@@ -78,6 +78,8 @@ class TradingEnvTrain(py_environment.PyEnvironment):
 
         note : les actions possibles dépendent de si on est positionné ou non, et là c'est pas pris en compte.
         """
+        self.train_index+=1
+        self.state=self.train_df[:][self.train_index-self.window_size:self.train_index]
 
         if (self.train_index==self.train_df.shape[0]) or self.current_balance<self.initial_balance*0.6:
             self._episode_ended=True
