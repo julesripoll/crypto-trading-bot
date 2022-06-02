@@ -6,14 +6,15 @@ import numpy as np
 
 class TradingEnvTrain(py_environment.PyEnvironment):
 
-    def __init__(self, df, window_size, tc, balance=1000):
+    def __init__(self, df, window_size, tc, tol, balance=1000):
         self._action_spec= array_spec.BoundedArraySpec(shape=(), dtype=int, minimum=0, maximum=1)
         self._observation_spec= array_spec.BoundedArraySpec(shape=(window_size,df.shape[1]), dtype=float, minimum=0)
         self._episode_ended=False
         self.initial_balance=balance 
         self.current_balance=balance
         self.train_df=df
-        self.train_index=window_size
+        self.train_index=(self.train_df).index[0]+window_size
+        print(self.train_index)
         self.tc=tc
         self.window_size=window_size
         self.state= df[:][self.train_index-window_size:self.train_index]
@@ -23,6 +24,7 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         self.price_history=[]
         self.position_history=[]
         self.total_reward=[]
+        self.tolerance=tol
 
     def action_spec(self):
         return self._action_spec
@@ -34,7 +36,7 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         self.price_history=[]
         self.action_history=[]
         self._episode_ended=False
-        self.train_index=self.window_size
+        self.train_index=(self.train_df).index[0]+self.window_size
         self.current_balance=self.initial_balance
         self.state= self.train_df[:][self.train_index-self.window_size:self.train_index]
         step=ts.restart(observation=self.state)
@@ -49,6 +51,7 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         if self._episode_ended :
           return self.reset()
         rwd=0
+        #print(self.train_index)
         current_price=self.train_df['Close'][self.train_index]
         
         if action==0: #buy
@@ -81,7 +84,7 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         self.train_index+=1
         self.state=self.train_df[:][self.train_index-self.window_size:self.train_index]
 
-        if (self.train_index==self.train_df.shape[0]) or self.current_balance<self.initial_balance*0.6:
+        if (self.train_index==self.train_df.shape[0]) or self.current_balance<self.initial_balance*self.tolerance:
             self._episode_ended=True
             self.train_index=self.window_size
             step=ts.termination(reward=rwd, observation=self.state)
