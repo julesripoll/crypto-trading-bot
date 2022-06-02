@@ -25,12 +25,13 @@ ema=pd.DataFrame(talib.EMA(eth['Close'],timeperiod=window_size))
 eth.insert(0,'rsi',rsi)
 eth.insert(0,'ema',ema)
 eth=eth[5:]
+eth.reset_index(inplace=True)
 
 #environnement d'entrainement
-train_py_env=trade.TradingEnvTrain(df=eth[:3000], window_size=window_size,tc=10)
+train_py_env=trade.TradingEnvTrain(df=eth[:3000], window_size=window_size,tol=0.8,tc=10)
 train_env = tf_py_environment.TFPyEnvironment(train_py_env)
 
-eval_py_env=trade.TradingEnvTrain(df=eth[3000:], window_size=window_size,tc=10)
+eval_py_env=trade.TradingEnvTrain(df=eth[3000:], window_size=window_size,tol=0.8, tc=10)
 eval_env=tf_py_environment.TFPyEnvironment(eval_py_env)
 
 #rnn
