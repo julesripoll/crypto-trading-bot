@@ -13,8 +13,7 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         self.initial_balance=balance 
         self.current_balance=balance
         self.train_df=df
-        self.train_index=(self.train_df).index[0]+window_size
-        print(self.train_index)
+        self.train_index=window_size
         self.tc=tc
         self.window_size=window_size
         self.state= df[:][self.train_index-window_size:self.train_index]
@@ -36,8 +35,9 @@ class TradingEnvTrain(py_environment.PyEnvironment):
         self.price_history=[]
         self.action_history=[]
         self._episode_ended=False
-        self.train_index=(self.train_df).index[0]+self.window_size
+        self.train_index=self.window_size
         self.current_balance=self.initial_balance
+        print(self.train_df[:][self.train_index-self.window_size:self.train_index])
         self.state= self.train_df[:][self.train_index-self.window_size:self.train_index]
         step=ts.restart(observation=self.state)
         #print('reset has been hit',step.step_type)
